@@ -1,28 +1,56 @@
+using UnityEditor.Callbacks;
 using UnityEngine;
+using UnityEngine.InputSystem;
+using UnityEngine.Scripting.APIUpdating;
 
 public class PlayerMovement : MonoBehaviour
 {
-    public float moveSpeed = 5f;
-    public Rigidbody2D rb;
-    Vector2 movement;
-    Vector2 mousePos;
+    [SerializeField] public float moveSpeed = 5f;
 
-    void Update()
-    {
-        // Input
-        movement.x = Input.GetAxisRaw("Horizontal");
-        movement.y = Input.GetAxisRaw("Vertical");
-        mousePos = Camera.main.ScreenToWorldPoint(Input.mousePosition);
+    private PlayerController inputActions;
+    private Vector2 movement;
+    private Rigidbody2D rb;
+    private Animator myAnimator;
+    private SpriteRenderer mySpriteRenderer;
+
+    private void Awake() {
+        inputActions = new PlayerController();
+        rb = GetComponent<Rigidbody2D>();
+        mySpriteRenderer = GetComponent<SpriteRenderer>();
+        myAnimator = GetComponent<Animator>();
     }
 
-    void FixedUpdate()
-    {
-        // Movement
-        rb.MovePosition(rb.position + movement * moveSpeed * Time.fixedDeltaTime);
+    private void OnEnable() {
+        inputActions.Enable();
+    }
 
-        // Rotation
-        Vector2 lookDir = mousePos - rb.position;
-        float angle = Mathf.Atan2(lookDir.y, lookDir.x) * Mathf.Rad2Deg - 90f;
-        rb.rotation = angle;
+    private void Update() {
+        PlayerInput();
+    }
+
+    private void FixedUpdate() {
+        AdjustPlayerFacingDirection();
+        Move();
+    }
+
+    private void PlayerInput(){
+        movement = inputActions.Movement.Move.ReadValue<Vector2>();
+
+        myAnimator.SetFloat("moveX", movement.x);
+        myAnimator.SetFloat("moveY", movement.y);
+    }
+    private void Move() {
+        rb.MovePosition(rb.position + movement * (moveSpeed * Time.deltaTime));
+    }
+
+    private void AdjustPlayerFacingDirection(){
+        Vector3 mousePos = Input.mousePosition;
+        Vector3 playerScreenPoint = Camera.main.WorldToScreenPoint(transform.position);
+
+        if (mousePos.x < playerScreenPoint.x) {
+            mySpriteRenderer.flipX = true;
+        }else{
+            mySpriteRenderer.flipX = false;
+        }
     }
 }
